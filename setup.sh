@@ -25,9 +25,15 @@ echo "2. Генерируем пару ключей..."
 # Утилита xray выводит ключи x25519 в stderr, объединяем потоки
 KEYS=$(docker run --rm ghcr.io/xtls/xray-core x25519 2>&1)
 
-# Вырезаем ключи с защитой от пробелов и переносов строк
-PRIVATE_KEY=$(echo "$KEYS" | grep -i "Private key:" | awk '{print $3}' | tr -d '\r\n ')
-PUBLIC_KEY=$(echo "$KEYS" | grep -i "Public key:" | awk '{print $3}' | tr -d '\r\n ')
+# В новых версиях Xray формат вывода изменился:
+# Было: "Private key: ...", "Public key: ..."
+# Стало: "PrivateKey: ...", "Password: ...", "Hash32: ..." (или "PublicKey:" в некоторых билдах)
+# В xtls-reality:
+# PrivateKey -> privateKey в config.json
+# Password -> это и есть Public Key для клиента
+
+PRIVATE_KEY=$(echo "$KEYS" | grep -iE "^(Private key:|PrivateKey:)" | awk -F': ' '{print $2}' | tr -d '\r\n ')
+PUBLIC_KEY=$(echo "$KEYS" | grep -iE "^(Public key:|PublicKey:|Password:)" | awk -F': ' '{print $2}' | tr -d '\r\n ')
 
 if [ -z "$PRIVATE_KEY" ] || [ -z "$PUBLIC_KEY" ]; then
     echo "Критическая ошибка при генерации ключей. Вывод утилиты:"
