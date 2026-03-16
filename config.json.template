@@ -20,18 +20,10 @@
         "security": "reality",
         "realitySettings": {
           "show": false,
-          "dest": "www.microsoft.com:443",
+          "dest": "YOUR_DEST",
           "xver": 0,
           "serverNames": [
-            "www.microsoft.com",
-            "update.microsoft.com",
-            "windowsupdate.microsoft.com",
-            "bing.com",
-            "www.bing.com",
-            "skype.com",
-            "www.skype.com",
-            "login.live.com",
-            "xbox.com"
+            YOUR_SERVER_NAMES
           ],
           "privateKey": "YOUR_PRIVATE_KEY",
           "shortIds": [

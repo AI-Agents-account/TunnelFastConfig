@@ -1,7 +1,46 @@
 #!/bin/bash
 set -e
 
+# Парсим аргумент (пресет маскировки), по умолчанию microsoft
+PRESET="${1:-microsoft}"
+PRESET=$(echo "$PRESET" | tr '[:upper:]' '[:lower:]')
+
+case "$PRESET" in
+    vk|vkontakte)
+        DEST="vk.com:443"
+        SERVER_NAMES='"vk.com", "m.vk.com", "api.vk.com", "oauth.vk.com"'
+        CLIENT_SNI="vk.com"
+        ;;
+    yandex|ya)
+        DEST="ya.ru:443"
+        SERVER_NAMES='"ya.ru", "www.ya.ru", "yandex.ru", "mail.yandex.ru", "disk.yandex.ru", "music.yandex.ru"'
+        CLIENT_SNI="ya.ru"
+        ;;
+    gosuslugi|gu)
+        DEST="www.gosuslugi.ru:443"
+        SERVER_NAMES='"www.gosuslugi.ru", "esia.gosuslugi.ru", "lk.gosuslugi.ru"'
+        CLIENT_SNI="www.gosuslugi.ru"
+        ;;
+    apple)
+        DEST="www.apple.com:443"
+        SERVER_NAMES='"www.apple.com", "icloud.com", "www.icloud.com", "itunes.apple.com", "update.apple.com"'
+        CLIENT_SNI="www.apple.com"
+        ;;
+    google)
+        DEST="dl.google.com:443"
+        SERVER_NAMES='"dl.google.com", "play.google.com", "android.clients.google.com", "update.googleapis.com"'
+        CLIENT_SNI="dl.google.com"
+        ;;
+    microsoft|ms|*)
+        DEST="www.microsoft.com:443"
+        SERVER_NAMES='"www.microsoft.com", "update.microsoft.com", "bing.com", "www.bing.com", "skype.com", "www.skype.com", "login.live.com", "xbox.com"'
+        CLIENT_SNI="www.microsoft.com"
+        PRESET="microsoft"
+        ;;
+esac
+
 echo "=== Генерация ключей для TunnelFastConfig (Xray VLESS + Reality) ==="
+echo "Выбран пресет маскировки: $PRESET (домен: $CLIENT_SNI)"
 
 if ! command -v docker &> /dev/null; then
     echo "Ошибка: Docker не установлен."
@@ -12,8 +51,7 @@ echo "Подготовка: обновляем образ xray-core..."
 docker pull ghcr.io/xtls/xray-core:latest > /dev/null 2>&1 || true
 
 echo "1. Генерируем UUID..."
-# Подавляем возможные логи пула, чтобы не засорять UUID
-UUID=$(docker run --rm ghcr.io/xtls/xray-core uuid 2>/dev/null | tr -d '\r')
+UUID=$(docker run --rm ghcr.io/xtls/xray-core uuid 2>/dev/null | tr -d '\r\n ')
 echo "UUID: $UUID"
 
 if [ -z "$UUID" ]; then
@@ -22,16 +60,7 @@ if [ -z "$UUID" ]; then
 fi
 
 echo "2. Генерируем пару ключей..."
-# Утилита xray выводит ключи x25519 в stderr, объединяем потоки
 KEYS=$(docker run --rm ghcr.io/xtls/xray-core x25519 2>&1)
-
-# В новых версиях Xray формат вывода изменился:
-# Было: "Private key: ...", "Public key: ..."
-# Стало: "PrivateKey: ...", "Password: ...", "Hash32: ..." (или "PublicKey:" в некоторых билдах)
-# В xtls-reality:
-# PrivateKey -> privateKey в config.json
-# Password -> это и есть Public Key для клиента
-
 PRIVATE_KEY=$(echo "$KEYS" | grep -iE "^(Private key:|PrivateKey:)" | awk -F': ' '{print $2}' | tr -d '\r\n ')
 PUBLIC_KEY=$(echo "$KEYS" | grep -iE "^(Public key:|PublicKey:|Password:)" | awk -F': ' '{print $2}' | tr -d '\r\n ')
 
@@ -47,9 +76,11 @@ echo "ShortId: $SHORT_ID"
 
 echo "4. Генерируем config.json из шаблона..."
 cp config.json.template config.json
-sed -i "s/YOUR_UUID/$UUID/g" config.json
-sed -i "s/YOUR_PRIVATE_KEY/$PRIVATE_KEY/g" config.json
-sed -i "s/YOUR_SHORT_ID/$SHORT_ID/g" config.json
+sed -i "s|YOUR_UUID|$UUID|g" config.json
+sed -i "s|YOUR_PRIVATE_KEY|$PRIVATE_KEY|g" config.json
+sed -i "s|YOUR_SHORT_ID|$SHORT_ID|g" config.json
+sed -i "s|YOUR_DEST|$DEST|g" config.json
+sed -i "s|YOUR_SERVER_NAMES|$SERVER_NAMES|g" config.json
 
 echo "=== Настройка завершена! ==="
 echo ""
@@ -61,20 +92,19 @@ echo "ID (UUID): $UUID"
 echo "Flow: xtls-rprx-vision"
 echo "Network: tcp"
 echo "TLS: reality"
-echo "SNI: www.microsoft.com"
+echo "SNI: $CLIENT_SNI"
 echo "Public Key: $PUBLIC_KEY"
 echo "ShortId: $SHORT_ID"
 echo "-----------------------------------"
 echo "Сохраните эти данные!"
-echo "Теперь вы можете запустить сервер командой: docker compose up -d"
 
-# Получаем публичный IP сервера для генерации ссылки
 SERVER_IP=$(curl -s4 api.ipify.org || curl -s4 icanhazip.com || echo "IP_ВАШЕГО_СЕРВЕРА")
-VLESS_LINK="vless://${UUID}@${SERVER_IP}:443?type=tcp&security=reality&flow=xtls-rprx-vision&pbk=${PUBLIC_KEY}&fp=chrome&sni=www.microsoft.com&sid=${SHORT_ID}&spx=%2F#TunnelFast"
+VLESS_LINK="vless://${UUID}@${SERVER_IP}:443?type=tcp&security=reality&flow=xtls-rprx-vision&pbk=${PUBLIC_KEY}&fp=chrome&sni=${CLIENT_SNI}&sid=${SHORT_ID}&spx=%2F#TunnelFast_${PRESET}"
 
 echo ""
 echo "🔥 БОНУС: Готовая ссылка для быстрого импорта:"
 echo "-----------------------------------"
 echo "$VLESS_LINK"
 echo "-----------------------------------"
-echo "Просто скопируйте эту ссылку и вставьте ее в клиент (например, V2Box) из буфера обмена."
+echo "Скопируйте эту ссылку и вставьте ее в клиент (например, V2Box) из буфера обмена."
+echo "Теперь вы можете запустить сервер командой: docker compose up -d"
