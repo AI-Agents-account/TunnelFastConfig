@@ -2,7 +2,7 @@
 
 Максимально простой и быстрый способ развернуть Xray VPN (VLESS + XTLS-Reality) через Docker. 
 Без тяжеловесных веб-панелей, без баз данных, потребляет всего 20-30 МБ ОЗУ.
-(Маскируется под трафик `vk.com`).
+(Маскируется под трафик `www.microsoft.com`).
 
 ## Требования
 * Сервер с установленным **Docker** и **Docker Compose**.
@@ -57,7 +57,7 @@ sudo systemctl disable apache2
 * **Flow:** `xtls-rprx-vision`
 * **Network:** `tcp`
 * **TLS:** `reality`
-* **SNI:** `vk.com`
+* **SNI:** `www.microsoft.com`
 * **Public Key:** `Ваш Public Key (Password из вывода скрипта)`
 * **ShortId:** `Ваш ShortId (из вывода скрипта)`
 
