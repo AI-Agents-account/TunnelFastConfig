@@ -122,3 +122,112 @@ sudo ss -tulpn | grep :443
 docker ps -a | grep xray
 ```
 *Статус `Up` означает, что сервер работает. Статус `Restarting` или `Exited` означает ошибку (смотрите логи).*
+
+## Как сменить домен маскировки (Готовые пресеты)
+
+Важное правило протокола **XTLS-Reality**: в список `serverNames` можно добавлять только те домены, которые принадлежат серверу, указанному в параметре `dest`. 
+Смешивать в одном конфиге `vk.com` и `microsoft.com` **категорически нельзя** — это сломает подключение, так как сервер Microsoft откажется выдавать сертификат для домена ВКонтакте.
+
+По умолчанию в `config.json` используется маскировка под Microsoft (там уже вписано 9 доменов: `www.microsoft.com`, `update.microsoft.com`, `bing.com`, `skype.com` и т.д., между которыми вы можете переключаться в клиенте без перезагрузки сервера).
+
+Если вы хотите полностью сменить маскировку (например, на российскую для обхода жестких белых списков), откройте ваш файл `config.json` и замените блок `realitySettings` на один из пресетов ниже.
+
+### Пресет 1: Яндекс (Россия)
+```json
+"realitySettings": {
+  "show": false,
+  "dest": "ya.ru:443",
+  "xver": 0,
+  "serverNames": [
+    "ya.ru",
+    "www.ya.ru",
+    "yandex.ru",
+    "mail.yandex.ru",
+    "disk.yandex.ru",
+    "music.yandex.ru"
+  ],
+  "privateKey": "YOUR_PRIVATE_KEY",
+  "shortIds": [
+    "YOUR_SHORT_ID"
+  ]
+}
+```
+
+### Пресет 2: ВКонтакте (Россия)
+```json
+"realitySettings": {
+  "show": false,
+  "dest": "vk.com:443",
+  "xver": 0,
+  "serverNames": [
+    "vk.com",
+    "m.vk.com",
+    "api.vk.com",
+    "oauth.vk.com"
+  ],
+  "privateKey": "YOUR_PRIVATE_KEY",
+  "shortIds": [
+    "YOUR_SHORT_ID"
+  ]
+}
+```
+
+### Пресет 3: Госуслуги (Россия)
+```json
+"realitySettings": {
+  "show": false,
+  "dest": "www.gosuslugi.ru:443",
+  "xver": 0,
+  "serverNames": [
+    "www.gosuslugi.ru",
+    "esia.gosuslugi.ru",
+    "lk.gosuslugi.ru"
+  ],
+  "privateKey": "YOUR_PRIVATE_KEY",
+  "shortIds": [
+    "YOUR_SHORT_ID"
+  ]
+}
+```
+
+### Пресет 4: Apple (Зарубежный)
+```json
+"realitySettings": {
+  "show": false,
+  "dest": "www.apple.com:443",
+  "xver": 0,
+  "serverNames": [
+    "www.apple.com",
+    "icloud.com",
+    "www.icloud.com",
+    "itunes.apple.com",
+    "support.apple.com",
+    "update.apple.com"
+  ],
+  "privateKey": "YOUR_PRIVATE_KEY",
+  "shortIds": [
+    "YOUR_SHORT_ID"
+  ]
+}
+```
+
+### Пресет 5: Google (Зарубежный)
+```json
+"realitySettings": {
+  "show": false,
+  "dest": "dl.google.com:443",
+  "xver": 0,
+  "serverNames": [
+    "dl.google.com",
+    "play.google.com",
+    "android.clients.google.com",
+    "update.googleapis.com"
+  ],
+  "privateKey": "YOUR_PRIVATE_KEY",
+  "shortIds": [
+    "YOUR_SHORT_ID"
+  ]
+}
+```
+
+*(После изменения `config.json` не забудьте перезапустить сервер: `docker compose down` и `docker compose up -d`)*
