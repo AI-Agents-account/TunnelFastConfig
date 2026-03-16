@@ -2,6 +2,7 @@ services:
   xray:
     image: ghcr.io/xtls/xray-core:latest
     container_name: xray_vpn
+    user: "root"
     restart: unless-stopped
     command: run -c /etc/xray/config.json
     network_mode: "host"
