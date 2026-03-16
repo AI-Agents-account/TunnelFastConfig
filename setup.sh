@@ -13,7 +13,7 @@ UUID=$(docker run --rm ghcr.io/xtls/xray-core uuid)
 echo "UUID: $UUID"
 
 echo "2. Генерируем пару ключей..."
-KEYS=$(docker run --rm ghcr.io/xtls/xray-core x25519)
+KEYS=$(docker run --rm ghcr.io/xtls/xray-core x25519 2>&1)
 PRIVATE_KEY=$(echo "$KEYS" | grep "Private key:" | awk '{print $3}')
 PUBLIC_KEY=$(echo "$KEYS" | grep "Public key:" | awk '{print $3}')
 
