@@ -69,8 +69,8 @@ echo "Сохраните эти данные!"
 echo "Теперь вы можете запустить сервер командой: docker compose up -d"
 
 # Получаем публичный IP сервера для генерации ссылки
-SERVER_IP=$(curl -s ifconfig.me || echo "IP_ВАШЕГО_СЕРВЕРА")
-VLESS_LINK="vless://${UUID}@${SERVER_IP}:443?type=tcp&security=reality&pbk=${PUBLIC_KEY}&fp=chrome&sni=vk.com&sid=${SHORT_ID}&spx=%2F#TunnelFast"
+SERVER_IP=$(curl -s4 api.ipify.org || curl -s4 icanhazip.com || echo "IP_ВАШЕГО_СЕРВЕРА")
+VLESS_LINK="vless://${UUID}@${SERVER_IP}:443?type=tcp&security=reality&flow=xtls-rprx-vision&pbk=${PUBLIC_KEY}&fp=chrome&sni=vk.com&sid=${SHORT_ID}&spx=%2F#TunnelFast"
 
 echo ""
 echo "🔥 БОНУС: Готовая ссылка для быстрого импорта:"
