@@ -4,7 +4,6 @@ services:
     container_name: xray_vpn
     restart: unless-stopped
     command: run -c /etc/xray/config.json
-    ports:
-      - "443:443"
+    network_mode: "host"
     volumes:
       - ./config.json:/etc/xray/config.json:ro
