@@ -4,21 +4,34 @@ set -e
 echo "=== Генерация ключей для TunnelFastConfig (Xray VLESS + Reality) ==="
 
 if ! command -v docker &> /dev/null; then
-    echo "Ошибка: Docker не установлен. Пожалуйста, установите Docker и Docker Compose."
+    echo "Ошибка: Docker не установлен."
     exit 1
 fi
 
+echo "Подготовка: обновляем образ xray-core..."
+docker pull ghcr.io/xtls/xray-core:latest > /dev/null 2>&1 || true
+
 echo "1. Генерируем UUID..."
-UUID=$(docker run --rm ghcr.io/xtls/xray-core uuid)
+# Подавляем возможные логи пула, чтобы не засорять UUID
+UUID=$(docker run --rm ghcr.io/xtls/xray-core uuid 2>/dev/null | tr -d '\r')
 echo "UUID: $UUID"
 
-echo "2. Генерируем пару ключей..."
-KEYS=$(docker run --rm ghcr.io/xtls/xray-core x25519 2>&1)
-PRIVATE_KEY=$(echo "$KEYS" | grep "Private key:" | awk '{print $3}')
-PUBLIC_KEY=$(echo "$KEYS" | grep "Public key:" | awk '{print $3}')
+if [ -z "$UUID" ]; then
+    echo "Ошибка: не удалось сгенерировать UUID!"
+    exit 1
+fi
 
-if [ -z "$PRIVATE_KEY" ]; then
-    echo "Ошибка при генерации ключей."
+echo "2. Генерируем пару ключей..."
+# Утилита xray выводит ключи x25519 в stderr, объединяем потоки
+KEYS=$(docker run --rm ghcr.io/xtls/xray-core x25519 2>&1)
+
+# Вырезаем ключи с защитой от пробелов и переносов строк
+PRIVATE_KEY=$(echo "$KEYS" | grep -i "Private key:" | awk '{print $3}' | tr -d '\r\n ')
+PUBLIC_KEY=$(echo "$KEYS" | grep -i "Public key:" | awk '{print $3}' | tr -d '\r\n ')
+
+if [ -z "$PRIVATE_KEY" ] || [ -z "$PUBLIC_KEY" ]; then
+    echo "Критическая ошибка при генерации ключей. Вывод утилиты:"
+    echo "$KEYS"
     exit 1
 fi
 
@@ -26,7 +39,8 @@ echo "3. Генерируем ShortId..."
 SHORT_ID=$(openssl rand -hex 8)
 echo "ShortId: $SHORT_ID"
 
-echo "4. Применяем настройки к config.json..."
+echo "4. Генерируем config.json из шаблона..."
+cp config.json.template config.json
 sed -i "s/YOUR_UUID/$UUID/g" config.json
 sed -i "s/YOUR_PRIVATE_KEY/$PRIVATE_KEY/g" config.json
 sed -i "s/YOUR_SHORT_ID/$SHORT_ID/g" config.json
