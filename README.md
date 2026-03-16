@@ -62,3 +62,27 @@ sudo systemctl disable apache2
 * **ShortId:** `Ваш ShortId (из вывода скрипта)`
 
 Готово!
+
+**Если порт занят старым VPN (TrustTunnel):**
+Если в выводе команды `ss -tulpn | grep :443` вы видите `trusttunnel_end`, вам нужно временно остановить этот процесс перед запуском Xray. 
+
+Остановить TrustTunnel:
+```bash
+# Если он работает как systemd-сервис:
+sudo systemctl stop trusttunnel
+# (или sudo systemctl stop trusttunnel_endpoint / trusttunnel-server - в зависимости от названия службы)
+
+# Если он запущен напрямую, можно "убить" процесс жестко:
+sudo killall trusttunnel_end
+```
+
+Чтобы вернуть старый VPN (TrustTunnel) обратно:
+```bash
+# Сначала выключаем Xray
+cd TunnelFastConfig
+docker compose down
+
+# Затем запускаем TrustTunnel
+sudo systemctl start trusttunnel
+# (Или запустите его так же, как вы делали это изначально)
+```
