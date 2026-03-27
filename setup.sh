@@ -98,7 +98,13 @@ echo "ShortId: $SHORT_ID"
 echo "-----------------------------------"
 echo "Сохраните эти данные!"
 
-SERVER_IP=$(curl -s4 api.ipify.org || curl -s4 icanhazip.com || echo "IP_ВАШЕГО_СЕРВЕРА")
+PRIMARY_IFACE=$(ip route show default 2>/dev/null | awk '/default/ {for(i=1;i<=NF;i++) if ($i=="dev") {print $(i+1); exit}}')
+SERVER_IP=$(ip -4 addr show dev "$PRIMARY_IFACE" 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | head -n1)
+
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP=$(curl -s4 api.ipify.org || curl -s4 icanhazip.com || echo "IP_ВАШЕГО_СЕРВЕРА")
+fi
+
 VLESS_LINK="vless://${UUID}@${SERVER_IP}:443?type=tcp&security=reality&flow=xtls-rprx-vision&pbk=${PUBLIC_KEY}&fp=chrome&sni=${CLIENT_SNI}&sid=${SHORT_ID}&spx=%2F#TunnelFast_${PRESET}"
 
 echo ""
